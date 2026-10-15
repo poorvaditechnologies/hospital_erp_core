@@ -15,11 +15,17 @@ async function main() {
     },
   });
 
+  await prisma.subscription.upsert({
+    where: { clinicId: clinic.id },
+    update: {},
+    create: { clinicId: clinic.id, plan: "STANDARD", status: "ACTIVE" },
+  });
+
   const passwordHash = await bcrypt.hash("admin123", 10);
 
   await prisma.user.upsert({
     where: { clinicId_phone: { clinicId: clinic.id, phone: "9999999999" } },
-    update: { isSuperAdmin: true },
+    update: {},
     create: {
       clinicId: clinic.id,
       name: "Clinic Admin",
@@ -27,7 +33,6 @@ async function main() {
       email: "admin@clinic.test",
       passwordHash,
       role: "ADMIN",
-      isSuperAdmin: true,
     },
   });
 

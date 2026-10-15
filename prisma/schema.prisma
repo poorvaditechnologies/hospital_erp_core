@@ -13,6 +13,24 @@ enum UserRole {
   DOCTOR
 }
 
+enum ClinicCategory {
+  AYURVEDIC
+  DENTAL
+}
+
+enum SubscriptionPlan {
+  TRIAL
+  STANDARD
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
 enum VisitType {
   SWARNA_PRASHANA
   WALKIN
@@ -63,21 +81,36 @@ enum MessageStatus {
 }
 
 model Clinic {
-  id                 String   @id @default(cuid())
+  id                 String         @id @default(cuid())
   name               String
+  category           ClinicCategory @default(AYURVEDIC)
   phone              String
   address             String?
-  subscriptionPlan    String   @default("trial")
-  subscriptionStatus  String   @default("active")
+  isActive            Boolean  @default(true)
   whatsappBspConfig   String? // encrypted JSON blob
   createdAt           DateTime @default(now())
 
+  subscription Subscription?
   users        User[]
   patients     Patient[]
   visits       Visit[]
   kitOrders    KitOrder[]
   templates    WhatsAppTemplate[]
   messageLogs  WhatsAppMessageLog[]
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  clinicId    String             @unique
+  plan        SubscriptionPlan   @default(TRIAL)
+  status      SubscriptionStatus @default(TRIAL)
+  startedAt   DateTime           @default(now())
+  renewsAt    DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
 }
 
 model User {
@@ -92,12 +125,26 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  clinic       Clinic   @relation(fields: [clinicId], references: [id])
-  visits       Visit[]  @relation("VisitDoctor")
-  messageLogs  WhatsAppMessageLog[]
+  clinic              Clinic               @relation(fields: [clinicId], references: [id])
+  visits              Visit[]              @relation("VisitDoctor")
+  messageLogs         WhatsAppMessageLog[]
+  passwordResetTokens PasswordResetToken[]
 
   @@unique([clinicId, phone])
   @@index([clinicId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model Patient {
